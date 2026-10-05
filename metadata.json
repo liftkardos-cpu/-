@@ -1,0 +1,6 @@
+{
+  "name": "ระบบสนับสนุนการติดตามงานด้านความมั่นคง (ต้นแบบ)",
+  "description": "ระบบสนับสนุนการติดตามงานด้านความมั่นคง (SOTS) ต้นแบบโครงงานพัฒนางาน CWIE มหาวิทยาลัยทักษิณ สำหรับที่ทำการปกครองจังหวัดสงขลา กลุ่มงานความมั่นคง",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
