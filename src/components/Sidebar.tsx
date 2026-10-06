@@ -12,7 +12,9 @@ import {
   GraduationCap,
   X,
   ExternalLink,
-  History
+  History,
+  FileText,
+  Database
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -51,15 +53,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       id: 'history' as ActiveTab,
-      label: 'ประวัติการดำเนินงาน',
-      sub: `Timeline & บันทึกสถานะ (${historyCount})`,
+      label: 'ประวัติและ Audit Log',
+      sub: `Timeline & บันทึกการเปลี่ยนแปลง (${historyCount})`,
       icon: <History className="w-4 h-4" />
     },
     {
+      id: 'reports' as ActiveTab,
+      label: 'รายงานสรุปการดำเนินงาน',
+      sub: 'Executive Report & พิมพ์รายงาน',
+      icon: <FileText className="w-4 h-4" />
+    },
+    {
       id: 'statistics' as ActiveTab,
-      label: 'สถิติและรายงาน',
+      label: 'สถิติและการวิเคราะห์',
       sub: 'วิเคราะห์ข้อมูลเชิงตัวเลข',
       icon: <BarChart3 className="w-4 h-4" />
+    },
+    {
+      id: 'backup' as ActiveTab,
+      label: 'สำรองและกู้คืนข้อมูล',
+      sub: 'Export / Import JSON',
+      icon: <Database className="w-4 h-4" />
     },
     {
       id: 'evaluation' as ActiveTab,

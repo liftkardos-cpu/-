@@ -21,7 +21,8 @@ import {
   formatThaiDate,
   calculateDeadlineStatus,
   getDeadlineBadgeStyle,
-  getStatusBadgeStyle
+  getStatusBadgeStyle,
+  getDetailedDeadlineInfo
 } from '../utils/dateUtils';
 import { exportTasksToCSV } from '../utils/storage';
 import { GoogleSheetsBar, SheetsConnectionStatus } from './GoogleSheetsBar';
@@ -44,6 +45,8 @@ interface TaskListProps {
   onConnectSheets: () => void;
   onDisconnectSheets: () => void;
   onSyncSheets: () => void;
+  initialUrgency?: string;
+  initialStatus?: string;
 }
 
 export const TaskList: React.FC<TaskListProps> = ({
@@ -62,18 +65,28 @@ export const TaskList: React.FC<TaskListProps> = ({
   sheetsErrorMessage,
   onConnectSheets,
   onDisconnectSheets,
-  onSyncSheets
+  onSyncSheets,
+  initialUrgency = 'all',
+  initialStatus = 'all'
 }) => {
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<string>(initialStatus);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedUrgency, setSelectedUrgency] = useState<string>('all'); // all, dueSoon, overdue, onTime
+  const [selectedUrgency, setSelectedUrgency] = useState<string>(initialUrgency);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [sortBy, setSortBy] = useState<'dateDesc' | 'dateAsc' | 'deadlineAsc' | 'codeAsc'>(
     'dateDesc'
   );
+
+  React.useEffect(() => {
+    if (initialUrgency) setSelectedUrgency(initialUrgency);
+  }, [initialUrgency]);
+
+  React.useEffect(() => {
+    if (initialStatus) setSelectedStatus(initialStatus);
+  }, [initialStatus]);
 
   const canAdd = userRole === 'admin' || userRole === 'staff';
   const canDelete = userRole === 'admin';
@@ -119,16 +132,14 @@ export const TaskList: React.FC<TaskListProps> = ({
 
         // Urgency / Deadline Filter
         if (selectedUrgency !== 'all') {
-          const deadlineStatus = calculateDeadlineStatus(task.deadline, task.status);
-          if (selectedUrgency === 'overdue' && deadlineStatus !== 'เกินกำหนด') return false;
-          if (selectedUrgency === 'dueSoon' && deadlineStatus !== 'ใกล้ถึงกำหนด') return false;
-          if (
-            selectedUrgency === 'onTime' &&
-            deadlineStatus !== 'ตามกำหนด' &&
-            deadlineStatus !== 'เสร็จสิ้นแล้ว'
-          ) {
-            return false;
-          }
+          const detailedInfo = getDetailedDeadlineInfo(task.deadline, task.status);
+          if (selectedUrgency === 'overdue' && detailedInfo.category !== 'overdue') return false;
+          if (selectedUrgency === 'due_today' && detailedInfo.category !== 'due_today') return false;
+          if (selectedUrgency === 'due_3_days' && detailedInfo.category !== 'due_3_days' && detailedInfo.category !== 'due_today') return false;
+          if (selectedUrgency === 'due_7_days' && detailedInfo.category !== 'due_7_days') return false;
+          if (selectedUrgency === 'normal' && detailedInfo.category !== 'normal' && detailedInfo.category !== 'completed') return false;
+          if (selectedUrgency === 'dueSoon' && detailedInfo.category !== 'due_3_days' && detailedInfo.category !== 'due_today') return false;
+          if (selectedUrgency === 'onTime' && detailedInfo.category !== 'normal' && detailedInfo.category !== 'completed') return false;
         }
 
         // Date Range Filter (Received Date)
@@ -316,9 +327,11 @@ export const TaskList: React.FC<TaskListProps> = ({
               className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-900"
             >
               <option value="all">ทั้งหมด</option>
-              <option value="overdue">⚠️ เกินกำหนด</option>
-              <option value="dueSoon">⏳ ใกล้ถึงกำหนด (ใน 3 วัน)</option>
-              <option value="onTime">✓ ตามกำหนด</option>
+              <option value="overdue">🔴 เกินกำหนด</option>
+              <option value="due_today">🔴 ครบกำหนดวันนี้</option>
+              <option value="due_3_days">🟠 ครบกำหนดภายใน 3 วัน</option>
+              <option value="due_7_days">🟡 ครบกำหนดภายใน 7 วัน</option>
+              <option value="normal">🟢 อยู่ในกำหนด</option>
             </select>
           </div>
 

@@ -37,15 +37,28 @@ export interface Task {
   updatedAt: string;
 }
 
+export type AuditActionType =
+  | 'เพิ่มงาน'
+  | 'แก้ไขงาน'
+  | 'ลบงาน'
+  | 'เปลี่ยนสถานะ'
+  | 'เปลี่ยนกำหนดติดตาม'
+  | 'เปลี่ยนผู้รับผิดชอบ';
+
 export interface TaskHistoryItem {
   id: string;
   timestamp: string; // e.g. "2026-10-05 09:30:15"
   taskId: string;
+  action?: AuditActionType;
+  previousValue?: string;
+  newValue?: string;
   previousStatus: string;
   newStatus: string;
   operator: string;
   details: string;
 }
+
+export type AuditLogItem = TaskHistoryItem;
 
 export interface TaskDocument {
   id: string; // Document ID (e.g. DOC-001)
@@ -91,7 +104,20 @@ export type ActiveTab =
   | 'dashboard'
   | 'tasks'
   | 'history'
+  | 'reports'
   | 'statistics'
+  | 'backup'
   | 'evaluation'
   | 'guide'
   | 'compliance';
+
+export interface SOTSBackupData {
+  version: string;
+  systemName: string;
+  exportedAt: string;
+  note: string;
+  tasks: Task[];
+  history: TaskHistoryItem[];
+  documents: TaskDocument[];
+  evaluations: EvaluationItem[];
+}

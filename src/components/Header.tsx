@@ -11,7 +11,8 @@ import {
   FileSpreadsheet,
   RefreshCw,
   Unlink,
-  Loader2
+  Loader2,
+  BellRing
 } from 'lucide-react';
 import { formatThaiDateFull } from '../utils/dateUtils';
 import { SheetsConnectionStatus } from './GoogleSheetsBar';
@@ -25,6 +26,8 @@ interface HeaderProps {
   onConnectSheets: () => void;
   onDisconnectSheets: () => void;
   onSyncSheets: () => void;
+  onOpenDeadlineAlerts?: () => void;
+  urgentAlertCount?: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -35,7 +38,9 @@ export const Header: React.FC<HeaderProps> = ({
   sheetsStatus,
   onConnectSheets,
   onDisconnectSheets,
-  onSyncSheets
+  onSyncSheets,
+  onOpenDeadlineAlerts,
+  urgentAlertCount = 0
 }) => {
   const todayStr = new Date().toISOString().slice(0, 10);
   const currentRoleInfo = ROLES[userRole];
@@ -78,6 +83,22 @@ export const Header: React.FC<HeaderProps> = ({
             <Calendar className="w-3.5 h-3.5 text-blue-900" />
             <span>วันนี้: {formatThaiDateFull(todayStr)}</span>
           </div>
+
+          {/* In-App Deadline Alert Notification Bell */}
+          {onOpenDeadlineAlerts && (
+            <button
+              onClick={onOpenDeadlineAlerts}
+              className="relative p-2 text-slate-600 hover:text-blue-900 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer border border-slate-200"
+              title="การแจ้งเตือนกำหนดติดตามงาน"
+            >
+              <BellRing className="w-4 h-4" />
+              {urgentAlertCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-rose-600 text-white font-mono text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
+                  {urgentAlertCount > 9 ? '9+' : urgentAlertCount}
+                </span>
+              )}
+            </button>
+          )}
 
           {/* Google Sheets Connection Button in Header */}
           {sheetsStatus === 'connected' || sheetsStatus === 'sync_success' || sheetsStatus === 'syncing' ? (

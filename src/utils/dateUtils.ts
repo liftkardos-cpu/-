@@ -71,6 +71,88 @@ export function getDaysDiffFromToday(targetDateStr: string): number {
   return Math.round(diffTime / (1000 * 60 * 60 * 24));
 }
 
+export type DetailedDeadlineCategory =
+  | 'overdue' // 🔴 เกินกำหนด
+  | 'due_today' // 🔴 ครบกำหนดวันนี้
+  | 'due_3_days' // 🟠 ครบกำหนดภายใน 3 วัน
+  | 'due_7_days' // 🟡 ครบกำหนดภายใน 7 วัน
+  | 'normal' // 🟢 อยู่ในกำหนด
+  | 'completed'; // เสร็จสิ้นแล้ว
+
+export interface DetailedDeadlineInfo {
+  category: DetailedDeadlineCategory;
+  diffDays: number;
+  label: string;
+  badgeClass: string;
+  dotColor: string;
+}
+
+export function getDetailedDeadlineInfo(deadlineStr: string, taskStatus: TaskStatus): DetailedDeadlineInfo {
+  if (taskStatus === 'เสร็จสิ้น') {
+    return {
+      category: 'completed',
+      diffDays: 0,
+      label: 'เสร็จสิ้นแล้ว',
+      badgeClass: 'bg-slate-100 text-slate-600 border-slate-200',
+      dotColor: 'bg-slate-400'
+    };
+  }
+  if (!deadlineStr) {
+    return {
+      category: 'normal',
+      diffDays: 999,
+      label: 'อยู่ในกำหนด',
+      badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      dotColor: 'bg-emerald-500'
+    };
+  }
+
+  const diffDays = getDaysDiffFromToday(deadlineStr);
+  if (diffDays < 0) {
+    return {
+      category: 'overdue',
+      diffDays,
+      label: `เกินกำหนด (${Math.abs(diffDays)} วัน)`,
+      badgeClass: 'bg-rose-50 text-rose-700 border-rose-200',
+      dotColor: 'bg-rose-600'
+    };
+  }
+  if (diffDays === 0) {
+    return {
+      category: 'due_today',
+      diffDays: 0,
+      label: 'ครบกำหนดวันนี้',
+      badgeClass: 'bg-rose-100 text-rose-800 border-rose-300 font-semibold',
+      dotColor: 'bg-rose-600'
+    };
+  }
+  if (diffDays <= 3) {
+    return {
+      category: 'due_3_days',
+      diffDays,
+      label: `ครบกำหนดภายใน 3 วัน (${diffDays} วัน)`,
+      badgeClass: 'bg-amber-100 text-amber-800 border-amber-300 font-semibold',
+      dotColor: 'bg-amber-500'
+    };
+  }
+  if (diffDays <= 7) {
+    return {
+      category: 'due_7_days',
+      diffDays,
+      label: `ครบกำหนดภายใน 7 วัน (${diffDays} วัน)`,
+      badgeClass: 'bg-yellow-50 text-yellow-800 border-yellow-200',
+      dotColor: 'bg-yellow-500'
+    };
+  }
+  return {
+    category: 'normal',
+    diffDays,
+    label: 'อยู่ในกำหนด',
+    badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    dotColor: 'bg-emerald-500'
+  };
+}
+
 export function calculateDeadlineStatus(deadlineStr: string, taskStatus: TaskStatus): DeadlineStatus {
   if (taskStatus === 'เสร็จสิ้น') {
     return 'เสร็จสิ้นแล้ว';

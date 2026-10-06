@@ -16,13 +16,18 @@ import {
   TrendingUp,
   AlertCircle,
   PauseCircle,
-  ShieldCheck
+  ShieldCheck,
+  BellRing,
+  Layers,
+  BarChart3,
+  Award
 } from 'lucide-react';
 import {
   formatThaiDate,
   calculateDeadlineStatus,
   getDeadlineBadgeStyle,
-  getStatusBadgeStyle
+  getStatusBadgeStyle,
+  getDetailedDeadlineInfo
 } from '../utils/dateUtils';
 
 interface DashboardProps {
@@ -32,6 +37,8 @@ interface DashboardProps {
   onEditTask: (task: Task) => void;
   onDeleteTask: (task: Task) => void;
   onNavigateToTasks: () => void;
+  onNavigateToTasksWithFilter?: (filter: { urgency?: string; status?: string }) => void;
+  onOpenDeadlineAlerts?: () => void;
   userRole: UserRole;
 }
 
@@ -42,25 +49,38 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onEditTask,
   onDeleteTask,
   onNavigateToTasks,
+  onNavigateToTasksWithFilter,
+  onOpenDeadlineAlerts,
   userRole
 }) => {
-  // Dynamic Calculations from current tasks array
+  // Total Tasks
   const totalTasks = tasks.length;
-  const pendingCount = tasks.filter((t) => t.status === 'รอดำเนินการ').length;
+
+  // Status Counts
+  const receivedCount = tasks.filter((t) => t.status === 'รับเรื่อง' || t.status === 'รอดำเนินการ').length;
+  const assignedCount = tasks.filter((t) => t.status === 'มอบหมาย').length;
   const inProgressCount = tasks.filter((t) => t.status === 'อยู่ระหว่างดำเนินการ').length;
   const followUpCount = tasks.filter((t) => t.status === 'รอติดตาม').length;
   const completedCount = tasks.filter((t) => t.status === 'เสร็จสิ้น').length;
-  const onHoldCount = tasks.filter((t) => t.status === 'พัก/รอข้อมูล').length;
 
-  // Deadline calculations
-  const overdueCount = tasks.filter(
-    (t) => calculateDeadlineStatus(t.deadline, t.status) === 'เกินกำหนด'
-  ).length;
-  const dueSoonCount = tasks.filter(
-    (t) => calculateDeadlineStatus(t.deadline, t.status) === 'ใกล้ถึงกำหนด'
+  // Deadline Calculations (from getDetailedDeadlineInfo)
+  const tasksWithDeadlines = tasks.map((t) => ({
+    task: t,
+    info: getDetailedDeadlineInfo(t.deadline, t.status)
+  }));
+
+  const overdueCount = tasksWithDeadlines.filter((item) => item.info.category === 'overdue').length;
+  const dueTodayCount = tasksWithDeadlines.filter((item) => item.info.category === 'due_today').length;
+  const due3DaysCount = tasksWithDeadlines.filter((item) => item.info.category === 'due_3_days').length;
+  const due7DaysCount = tasksWithDeadlines.filter((item) => item.info.category === 'due_7_days').length;
+  const normalCount = tasksWithDeadlines.filter(
+    (item) => item.info.category === 'normal' || item.info.category === 'completed'
   ).length;
 
-  // Recent 6 tasks sorted by updated date / received date
+  // Success / Completion Rate
+  const completionRate = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
+
+  // Recent 6 tasks sorted by received date
   const recentTasks = [...tasks]
     .sort((a, b) => new Date(b.receivedDate).getTime() - new Date(a.receivedDate).getTime())
     .slice(0, 6);
@@ -72,7 +92,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
   }, {} as Record<string, number>);
 
   const canAdd = userRole === 'admin' || userRole === 'staff';
-  const canDelete = userRole === 'admin';
+
+  const handleFilterClick = (filter: { urgency?: string; status?: string }) => {
+    if (onNavigateToTasksWithFilter) {
+      onNavigateToTasksWithFilter(filter);
+    } else {
+      onNavigateToTasks();
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -85,11 +112,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
               โครงงานพัฒนางาน CWIE มหาวิทยาลัยทักษิณ
             </div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight">
-              ภาพรวมการดำเนินงาน
+              ภาพรวมการดำเนินงาน (Executive Dashboard)
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
               ระบบสนับสนุนการติดตามงานด้านความมั่นคง (SOTS) ที่ทำการปกครองจังหวัดสงขลา กลุ่มงานความมั่นคง
-              ช่วยบันทึก มอบหมาย และติดตามสถานะความคืบหน้าของงานธุรการและงานประสานงานอย่างมีประสิทธิภาพ
+              ติดตามสถานะ กำหนดเวลา และสรุปผลการปฏิบัติราชการ
             </p>
           </div>
 
@@ -97,151 +124,334 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {canAdd && (
               <button
                 onClick={onOpenCreate}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-95"
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-95 cursor-pointer"
               >
                 <PlusCircle className="w-5 h-5" />
-                + เพิ่มงานใหม่
+                <span>+ เพิ่มงานใหม่</span>
+              </button>
+            )}
+            {onOpenDeadlineAlerts && (
+              <button
+                onClick={onOpenDeadlineAlerts}
+                className="flex items-center gap-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-semibold text-sm px-4 py-2.5 rounded-xl transition-all border border-amber-400/30 cursor-pointer"
+              >
+                <BellRing className="w-4 h-4 text-amber-300" />
+                <span>แจ้งเตือน ({overdueCount + dueTodayCount + due3DaysCount})</span>
               </button>
             )}
             <button
               onClick={onNavigateToTasks}
-              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium text-sm px-4 py-2.5 rounded-xl transition-all border border-white/15"
+              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium text-sm px-4 py-2.5 rounded-xl transition-all border border-white/15 cursor-pointer"
             >
-              ดูงานทั้งหมด
+              <span>ดูงานทั้งหมด</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Overdue / Due Soon Alert Ribbon if any */}
-        {(overdueCount > 0 || dueSoonCount > 0) && (
-          <div className="mt-6 pt-5 border-t border-slate-800/80 flex flex-wrap items-center gap-4 text-xs">
-            <span className="text-slate-400 font-semibold flex items-center gap-1.5">
-              <AlertCircle className="w-4 h-4 text-amber-400" />
-              การแจ้งเตือนกำหนดเวลา:
-            </span>
-            {overdueCount > 0 && (
-              <span className="bg-rose-500/20 border border-rose-500/40 text-rose-300 px-3 py-1 rounded-full font-semibold">
-                ⚠️ มีงานเกินกำหนด {overdueCount} รายการ
+        {/* Overdue & Alert Notice Bar */}
+        {(overdueCount > 0 || dueTodayCount > 0 || due3DaysCount > 0) && (
+          <div className="mt-6 pt-5 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-slate-400 font-semibold flex items-center gap-1.5 mr-1">
+                <AlertCircle className="w-4 h-4 text-amber-400" />
+                สรุปการเตือนกำหนดเวลา:
               </span>
-            )}
-            {dueSoonCount > 0 && (
-              <span className="bg-amber-500/20 border border-amber-500/40 text-amber-300 px-3 py-1 rounded-full font-semibold">
-                ⏳ มีงานใกล้ถึงกำหนดภายใน 3 วัน {dueSoonCount} รายการ
-              </span>
-            )}
+              {overdueCount > 0 && (
+                <button
+                  onClick={() => handleFilterClick({ urgency: 'overdue' })}
+                  className="bg-rose-500/20 border border-rose-500/40 text-rose-300 px-3 py-1 rounded-full font-semibold hover:bg-rose-500/30 cursor-pointer transition-colors"
+                >
+                  🔴 เกินกำหนด {overdueCount} งาน
+                </button>
+              )}
+              {dueTodayCount > 0 && (
+                <button
+                  onClick={() => handleFilterClick({ urgency: 'due_today' })}
+                  className="bg-rose-500/20 border border-rose-500/40 text-rose-200 px-3 py-1 rounded-full font-semibold hover:bg-rose-500/30 cursor-pointer transition-colors"
+                >
+                  🔴 ครบกำหนดวันนี้ {dueTodayCount} งาน
+                </button>
+              )}
+              {due3DaysCount > 0 && (
+                <button
+                  onClick={() => handleFilterClick({ urgency: 'due_3_days' })}
+                  className="bg-amber-500/20 border border-amber-500/40 text-amber-300 px-3 py-1 rounded-full font-semibold hover:bg-amber-500/30 cursor-pointer transition-colors"
+                >
+                  🟠 ครบกำหนดภายใน 3 วัน {due3DaysCount} งาน
+                </button>
+              )}
+              {due7DaysCount > 0 && (
+                <button
+                  onClick={() => handleFilterClick({ urgency: 'due_7_days' })}
+                  className="bg-yellow-500/20 border border-yellow-500/40 text-yellow-300 px-3 py-1 rounded-full font-semibold hover:bg-yellow-500/30 cursor-pointer transition-colors"
+                >
+                  🟡 ครบกำหนดภายใน 7 วัน {due7DaysCount} งาน
+                </button>
+              )}
+            </div>
+
+            <span className="text-slate-400 text-[11px]">*คลิกเพื่อเปิดตารางกรองรายการ</span>
           </div>
         )}
       </div>
 
-      {/* 5 Primary Summary Cards (Requirement: At least 5 cards with dynamic calculation) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4">
-        {/* Card 1: งานทั้งหมด */}
-        <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs hover:shadow-xs transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">งานทั้งหมด</span>
-            <div className="p-2 bg-slate-100 text-slate-700 rounded-lg">
-              <FileText className="w-4 h-4" />
-            </div>
+      {/* ======================================================== */}
+      {/* ส่วนที่ 3 & 4: งานใกล้ครบกำหนด & งานเกินกำหนด (4-5 Cards Clickable) */}
+      {/* ======================================================== */}
+      <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs space-y-3">
+        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-blue-900" />
+            <h2 className="text-sm font-bold text-slate-900">
+              ระบบแจ้งเตือนกำหนดติดตามงาน (Deadline Tracking Control)
+            </h2>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-bold text-slate-900 font-mono">
-              {totalTasks}
-            </div>
-            <p className="text-[11px] text-slate-400 mt-1">รายการงานในระบบ</p>
-          </div>
+          <span className="text-[11px] text-slate-400">
+            คำนวณจากวันที่รับเรื่องเทียบกับวันกำหนดติดตามปัจจุบัน
+          </span>
         </div>
 
-        {/* Card 2: รอดำเนินการ */}
-        <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs hover:shadow-xs transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">รอดำเนินการ</span>
-            <div className="p-2 bg-slate-100 text-slate-600 rounded-lg">
-              <Inbox className="w-4 h-4" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          {/* Card 1: เกินกำหนด 🔴 */}
+          <button
+            onClick={() => handleFilterClick({ urgency: 'overdue' })}
+            className="p-3.5 rounded-xl border border-rose-200 bg-rose-50/70 hover:bg-rose-100/80 transition-all text-left cursor-pointer group shadow-2xs"
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-rose-800 flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-pulse" />
+                🔴 เกินกำหนด
+              </span>
+              <span className="text-xs text-rose-500 group-hover:translate-x-0.5 transition-transform">
+                →
+              </span>
             </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-bold text-slate-700 font-mono">
-              {pendingCount}
+            <div className="text-2xl sm:text-3xl font-bold font-mono text-rose-900 mt-2">
+              {overdueCount} <span className="text-xs font-normal text-rose-700">งาน</span>
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              {totalTasks > 0 ? Math.round((pendingCount / totalTasks) * 100) : 0}% ของงานทั้งหมด
+            <p className="text-[11px] text-rose-600 mt-1">เลยกำหนดติดตาม ต้องเร่งรัดด่วน</p>
+          </button>
+
+          {/* Card 2: ครบกำหนดภายใน 3 วัน 🟠 */}
+          <button
+            onClick={() => handleFilterClick({ urgency: 'due_3_days' })}
+            className="p-3.5 rounded-xl border border-amber-200 bg-amber-50/70 hover:bg-amber-100/80 transition-all text-left cursor-pointer group shadow-2xs"
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-amber-800 flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                🟠 ภายใน 3 วัน
+              </span>
+              <span className="text-xs text-amber-500 group-hover:translate-x-0.5 transition-transform">
+                →
+              </span>
+            </div>
+            <div className="text-2xl sm:text-3xl font-bold font-mono text-amber-900 mt-2">
+              {due3DaysCount + dueTodayCount} <span className="text-xs font-normal text-amber-700">งาน</span>
+            </div>
+            <p className="text-[11px] text-amber-600 mt-1">
+              ใกล้ถึงกำหนด (รวมวันนี้ {dueTodayCount} งาน)
             </p>
-          </div>
-        </div>
+          </button>
 
-        {/* Card 3: อยู่ระหว่างดำเนินการ */}
-        <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs hover:shadow-xs transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">อยู่ระหว่างดำเนินการ</span>
-            <div className="p-2 bg-blue-50 text-blue-800 rounded-lg">
-              <Clock className="w-4 h-4" />
+          {/* Card 3: ครบกำหนดภายใน 7 วัน 🟡 */}
+          <button
+            onClick={() => handleFilterClick({ urgency: 'due_7_days' })}
+            className="p-3.5 rounded-xl border border-yellow-200 bg-yellow-50/70 hover:bg-yellow-100/80 transition-all text-left cursor-pointer group shadow-2xs"
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-yellow-800 flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
+                🟡 ภายใน 7 วัน
+              </span>
+              <span className="text-xs text-yellow-500 group-hover:translate-x-0.5 transition-transform">
+                →
+              </span>
             </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-bold text-blue-900 font-mono">
-              {inProgressCount}
+            <div className="text-2xl sm:text-3xl font-bold font-mono text-yellow-900 mt-2">
+              {due7DaysCount} <span className="text-xs font-normal text-yellow-700">งาน</span>
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">กำลังปฏิบัติการ/ประสานงาน</p>
-          </div>
-        </div>
+            <p className="text-[11px] text-yellow-600 mt-1">อยู่ในรอบสัปดาห์ปัจจุบัน</p>
+          </button>
 
-        {/* Card 4: รอติดตาม */}
-        <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs hover:shadow-xs transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">รอติดตาม</span>
-            <div className="p-2 bg-amber-50 text-amber-700 rounded-lg">
-              <AlertTriangle className="w-4 h-4" />
+          {/* Card 4: อยู่ในกำหนด 🟢 */}
+          <button
+            onClick={() => handleFilterClick({ urgency: 'normal' })}
+            className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100/80 transition-all text-left cursor-pointer group shadow-2xs"
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-emerald-800 flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                🟢 อยู่ในกำหนด
+              </span>
+              <span className="text-xs text-emerald-500 group-hover:translate-x-0.5 transition-transform">
+                →
+              </span>
             </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-bold text-amber-700 font-mono">
-              {followUpCount}
+            <div className="text-2xl sm:text-3xl font-bold font-mono text-emerald-900 mt-2">
+              {normalCount} <span className="text-xs font-normal text-emerald-700">งาน</span>
             </div>
-            <p className="text-[11px] text-slate-400 mt-1">รอผลตอบกลับจากหน่วยงาน</p>
-          </div>
-        </div>
-
-        {/* Card 5: เสร็จสิ้น */}
-        <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs hover:shadow-xs transition-shadow col-span-2 sm:col-span-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">เสร็จสิ้น</span>
-            <div className="p-2 bg-emerald-50 text-emerald-700 rounded-lg">
-              <CheckCircle2 className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-bold text-emerald-700 font-mono">
-              {completedCount}
-            </div>
-            <p className="text-[11px] text-emerald-600 mt-1 font-medium">
-              สำเร็จแล้ว {totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0}%
-            </p>
-          </div>
+            <p className="text-[11px] text-emerald-600 mt-1">การดำเนินงานตามแผนปกติ</p>
+          </button>
         </div>
       </div>
 
-      {/* Visual Analytics Widgets */}
+      {/* ======================================================== */}
+      {/* ส่วนที่ 1, 2, 5: จำนวนงานทั้งหมด, งานตามสถานะ, อัตราความสำเร็จ */}
+      {/* ======================================================== */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
+        {/* ส่วนที่ 1: งานทั้งหมด */}
+        <button
+          onClick={() => handleFilterClick({ status: 'all' })}
+          className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs hover:shadow-xs transition-shadow text-left cursor-pointer group"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">ส่วนที่ 1: งานทั้งหมด</span>
+            <div className="p-1.5 bg-slate-100 text-slate-700 rounded-lg group-hover:bg-blue-100 group-hover:text-blue-900 transition-colors">
+              <FileText className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2.5">
+            <div className="text-2xl sm:text-3xl font-bold text-slate-900 font-mono">
+              {totalTasks}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5">รวมทุกสถานะในระบบ</p>
+          </div>
+        </button>
+
+        {/* ส่วนที่ 2A: รับเรื่อง */}
+        <button
+          onClick={() => handleFilterClick({ status: 'รับเรื่อง' })}
+          className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs hover:shadow-xs transition-shadow text-left cursor-pointer group"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">รับเรื่อง</span>
+            <div className="p-1.5 bg-slate-100 text-slate-600 rounded-lg group-hover:bg-slate-200 transition-colors">
+              <Inbox className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2.5">
+            <div className="text-2xl sm:text-3xl font-bold text-slate-700 font-mono">
+              {receivedCount}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5">ลงทะเบียนเข้าใหม่</p>
+          </div>
+        </button>
+
+        {/* ส่วนที่ 2B: มอบหมาย */}
+        <button
+          onClick={() => handleFilterClick({ status: 'มอบหมาย' })}
+          className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs hover:shadow-xs transition-shadow text-left cursor-pointer group"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">มอบหมาย</span>
+            <div className="p-1.5 bg-indigo-50 text-indigo-700 rounded-lg group-hover:bg-indigo-100 transition-colors">
+              <User className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2.5">
+            <div className="text-2xl sm:text-3xl font-bold text-indigo-800 font-mono">
+              {assignedCount}
+            </div>
+            <p className="text-[11px] text-indigo-600 mt-0.5">ส่งต่อผู้รับผิดชอบ</p>
+          </div>
+        </button>
+
+        {/* ส่วนที่ 2C: อยู่ระหว่างดำเนินการ */}
+        <button
+          onClick={() => handleFilterClick({ status: 'อยู่ระหว่างดำเนินการ' })}
+          className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs hover:shadow-xs transition-shadow text-left cursor-pointer group"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">ดำเนินการ</span>
+            <div className="p-1.5 bg-blue-50 text-blue-700 rounded-lg group-hover:bg-blue-100 transition-colors">
+              <Clock className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2.5">
+            <div className="text-2xl sm:text-3xl font-bold text-blue-900 font-mono">
+              {inProgressCount}
+            </div>
+            <p className="text-[11px] text-blue-600 mt-0.5">กำลังประสานงาน</p>
+          </div>
+        </button>
+
+        {/* ส่วนที่ 2D: รอติดตาม */}
+        <button
+          onClick={() => handleFilterClick({ status: 'รอติดตาม' })}
+          className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs hover:shadow-xs transition-shadow text-left cursor-pointer group"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">รอติดตาม</span>
+            <div className="p-1.5 bg-amber-50 text-amber-700 rounded-lg group-hover:bg-amber-100 transition-colors">
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2.5">
+            <div className="text-2xl sm:text-3xl font-bold text-amber-800 font-mono">
+              {followUpCount}
+            </div>
+            <p className="text-[11px] text-amber-600 mt-0.5">รอรายงานผล</p>
+          </div>
+        </button>
+
+        {/* ส่วนที่ 5: อัตราความสำเร็จ & เสร็จสิ้น */}
+        <button
+          onClick={() => handleFilterClick({ status: 'เสร็จสิ้น' })}
+          className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs hover:shadow-xs transition-shadow text-left cursor-pointer group"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">เสร็จสิ้น ({completionRate}%)</span>
+            <div className="p-1.5 bg-emerald-50 text-emerald-700 rounded-lg group-hover:bg-emerald-100 transition-colors">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2.5">
+            <div className="text-2xl sm:text-3xl font-bold text-emerald-700 font-mono">
+              {completedCount}
+            </div>
+            <p className="text-[11px] text-emerald-600 mt-0.5 font-semibold">
+              อัตราสำเร็จ {completionRate}%
+            </p>
+          </div>
+        </button>
+      </div>
+
+      {/* ======================================================== */}
+      {/* ส่วนที่ 6: แนวโน้มการดำเนินงานและสัดส่วนภารกิจ (Analytics Widgets) */}
+      {/* ======================================================== */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Status Distribution Progress */}
-        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-2xs lg:col-span-2">
-          <div className="flex items-center justify-between mb-4">
+        {/* Multi-segment Status Progress Bar */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs lg:col-span-2 space-y-4">
+          <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-bold text-slate-900">สัดส่วนสถานะงานในระบบ</h2>
-              <p className="text-xs text-slate-500">จำแนกตามสถานะการดำเนินงานปัจจุบัน</p>
+              <h2 className="text-sm font-bold text-slate-900">
+                ส่วนที่ 6: แนวโน้มและสัดส่วนสถานะการดำเนินงาน
+              </h2>
+              <p className="text-xs text-slate-500">
+                กระบวนการ Workflow 5 ขั้นตอน (รับเรื่อง → มอบหมาย → ดำเนินการ → รอติดตาม → เสร็จสิ้น)
+              </p>
             </div>
             <span className="text-xs font-semibold text-blue-900 bg-blue-50 px-2.5 py-1 rounded-md">
-              รวม {totalTasks} รายการ
+              รวม {totalTasks} งาน
             </span>
           </div>
 
-          {/* Multi-segment stacked progress bar */}
+          {/* Stacked Progress Bar */}
           <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden flex gap-0.5 p-0.5">
-            {pendingCount > 0 && (
+            {receivedCount > 0 && (
               <div
-                style={{ width: `${(pendingCount / totalTasks) * 100}%` }}
+                style={{ width: `${(receivedCount / totalTasks) * 100}%` }}
                 className="bg-slate-400 rounded-xs transition-all"
-                title={`รอดำเนินการ: ${pendingCount}`}
+                title={`รับเรื่อง: ${receivedCount}`}
+              />
+            )}
+            {assignedCount > 0 && (
+              <div
+                style={{ width: `${(assignedCount / totalTasks) * 100}%` }}
+                className="bg-indigo-600 rounded-xs transition-all"
+                title={`มอบหมาย: ${assignedCount}`}
               />
             )}
             {inProgressCount > 0 && (
@@ -265,109 +475,95 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 title={`เสร็จสิ้น: ${completedCount}`}
               />
             )}
-            {onHoldCount > 0 && (
-              <div
-                style={{ width: `${(onHoldCount / totalTasks) * 100}%` }}
-                className="bg-purple-500 rounded-xs transition-all"
-                title={`พัก/รอข้อมูล: ${onHoldCount}`}
-              />
-            )}
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4 pt-3 border-t border-slate-100 text-xs">
+          {/* Legend */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-3 border-t border-slate-100 text-xs">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
               <div>
-                <span className="text-slate-500 block">รอดำเนินการ</span>
-                <span className="font-bold text-slate-800 font-mono">{pendingCount}</span>
+                <span className="text-slate-500 block text-[11px]">รับเรื่อง</span>
+                <span className="font-bold text-slate-800 font-mono">{receivedCount}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-indigo-600" />
+              <div>
+                <span className="text-slate-500 block text-[11px]">มอบหมาย</span>
+                <span className="font-bold text-indigo-800 font-mono">{assignedCount}</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
               <div>
-                <span className="text-slate-500 block">อยู่ระหว่างดำเนินการ</span>
+                <span className="text-slate-500 block text-[11px]">ดำเนินการ</span>
                 <span className="font-bold text-blue-900 font-mono">{inProgressCount}</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
               <div>
-                <span className="text-slate-500 block">รอติดตาม</span>
-                <span className="font-bold text-amber-700 font-mono">{followUpCount}</span>
+                <span className="text-slate-500 block text-[11px]">รอติดตาม</span>
+                <span className="font-bold text-amber-800 font-mono">{followUpCount}</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
               <div>
-                <span className="text-slate-500 block">เสร็จสิ้น</span>
+                <span className="text-slate-500 block text-[11px]">เสร็จสิ้น</span>
                 <span className="font-bold text-emerald-700 font-mono">{completedCount}</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
-              <div>
-                <span className="text-slate-500 block">พัก/รอข้อมูล</span>
-                <span className="font-bold text-purple-700 font-mono">{onHoldCount}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Deadline Status Widget */}
-        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-2xs flex flex-col justify-between">
-          <div>
-            <h2 className="text-sm font-bold text-slate-900">การควบคุมกำหนดเวลา</h2>
-            <p className="text-xs text-slate-500 mt-0.5">การตรวจสอบวันครบกำหนดส่งงาน</p>
-
-            <div className="mt-4 space-y-2.5">
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-emerald-50 border border-emerald-100 text-xs">
-                <span className="font-semibold text-emerald-800 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  ตามกำหนดเวลา / เสร็จสิ้น
-                </span>
-                <span className="font-bold font-mono text-emerald-900">
-                  {totalTasks - overdueCount - dueSoonCount}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-amber-50 border border-amber-100 text-xs">
-                <span className="font-semibold text-amber-800 flex items-center gap-1.5">
-                  <Clock className="w-4 h-4 text-amber-600" />
-                  ใกล้ถึงกำหนด (ภายใน 3 วัน)
-                </span>
-                <span className="font-bold font-mono text-amber-900">{dueSoonCount}</span>
-              </div>
-
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-rose-50 border border-rose-100 text-xs">
-                <span className="font-semibold text-rose-800 flex items-center gap-1.5">
-                  <AlertTriangle className="w-4 h-4 text-rose-600" />
-                  เกินกำหนดส่งงาน
-                </span>
-                <span className="font-bold font-mono text-rose-900">{overdueCount}</span>
-              </div>
-            </div>
+        {/* Category Breakdown Widget */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-slate-900">จำแนกตามประเภทงาน</h2>
+            <BarChart3 className="w-4 h-4 text-blue-900" />
           </div>
 
-          <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-500">
-            * คำนวณอัตโนมัติจากวันกำหนดติดตามเทียบกับวันที่ปัจจุบัน
+          <div className="space-y-2.5 pt-1">
+            {Object.entries(categoryCounts).map(([catName, count]) => {
+              const pct = totalTasks > 0 ? Math.round((count / totalTasks) * 100) : 0;
+              return (
+                <div key={catName} className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-slate-700 truncate max-w-[160px]">{catName}</span>
+                    <span className="font-mono text-slate-500 font-semibold">{count} งาน</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      style={{ width: `${pct}%` }}
+                      className="h-full bg-blue-900 rounded-full transition-all"
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* Section: รายการงานล่าสุด (Requirement #4) */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-2xs overflow-hidden">
+      {/* ======================================================== */}
+      {/* ส่วนที่ 7: งานที่ต้องติดตามล่าสุด (Recent / Urgent Tasks Table) */}
+      {/* ======================================================== */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
         <div className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200">
           <div>
-            <h2 className="text-base font-bold text-slate-900">รายการงานล่าสุด</h2>
+            <h2 className="text-base font-bold text-slate-900">
+              ส่วนที่ 7: งานที่ต้องติดตามล่าสุด
+            </h2>
             <p className="text-xs text-slate-500">
-              แสดง 6 รายการที่บันทึกหรือปรับปรุงล่าสุดในระบบ
+              แสดง 6 รายการงานล่าสุดที่บันทึกหรือปรับปรุงในระบบเพื่อการติดตามอย่างต่อเนื่อง
             </p>
           </div>
           <button
             onClick={onNavigateToTasks}
-            className="text-xs font-semibold text-blue-900 hover:text-blue-700 flex items-center gap-1"
+            className="text-xs font-semibold text-blue-900 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
           >
-            เปิดตารางจัดการงานทั้งหมด ({totalTasks} รายการ)
+            <span>เปิดตารางจัดการงานทั้งหมด ({totalTasks} รายการ)</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
@@ -381,10 +577,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <th className="py-3 px-4">วันที่รับเรื่อง</th>
                 <th className="py-3 px-4">ประเภทงาน</th>
                 <th className="py-3 px-4">สรุปงาน</th>
-                <th className="py-3 px-4">หน่วยงาน/ผู้รับผิดชอบ</th>
+                <th className="py-3 px-4">ผู้รับผิดชอบ</th>
                 <th className="py-3 px-4">กำหนดติดตาม</th>
                 <th className="py-3 px-4">สถานะ</th>
-                <th className="py-3 px-4 text-right">การดำเนินการ</th>
+                <th className="py-3 px-4 text-right">การจัดการ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -449,7 +645,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => onViewTask(task)}
-                            className="p-1.5 text-slate-600 hover:text-blue-900 hover:bg-slate-100 rounded-md transition-colors"
+                            className="p-1.5 text-slate-600 hover:text-blue-900 hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
                             title="ดูรายละเอียด"
                           >
                             <Eye className="w-4 h-4" />
@@ -457,7 +653,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           {(userRole === 'admin' || userRole === 'staff') && (
                             <button
                               onClick={() => onEditTask(task)}
-                              className="p-1.5 text-slate-600 hover:text-amber-700 hover:bg-amber-50 rounded-md transition-colors"
+                              className="p-1.5 text-slate-600 hover:text-amber-700 hover:bg-amber-50 rounded-md transition-colors cursor-pointer"
                               title="แก้ไข"
                             >
                               <Edit className="w-4 h-4" />
@@ -466,7 +662,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           {userRole === 'admin' && (
                             <button
                               onClick={() => onDeleteTask(task)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors"
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors cursor-pointer"
                               title="ลบ"
                             >
                               <Trash2 className="w-4 h-4" />

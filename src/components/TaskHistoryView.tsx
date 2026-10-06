@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Task, TaskHistoryItem, UserRole } from '../types';
+import { Task, TaskHistoryItem, UserRole, AuditActionType } from '../types';
 import {
   History,
   Search,
@@ -12,7 +12,13 @@ import {
   FileSpreadsheet,
   CheckCircle2,
   Activity,
-  Layers
+  Layers,
+  Filter,
+  ShieldCheck,
+  Edit,
+  Trash2,
+  PlusCircle,
+  Calendar
 } from 'lucide-react';
 import { formatThaiDateTime, getStatusBadgeStyle } from '../utils/dateUtils';
 import { exportHistoryToCSV } from '../utils/storage';
@@ -40,9 +46,10 @@ export const TaskHistoryView: React.FC<TaskHistoryViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTaskId, setSelectedTaskId] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedAction, setSelectedAction] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'timeline' | 'table'>('timeline');
 
-  // Filtered history
+  // Filtered history / audit logs
   const filteredHistory = useMemo(() => {
     return history.filter((item) => {
       // Search query filter
@@ -51,9 +58,10 @@ export const TaskHistoryView: React.FC<TaskHistoryViewProps> = ({
         const matchTask = item.taskId.toLowerCase().includes(q);
         const matchOperator = item.operator.toLowerCase().includes(q);
         const matchDetails = item.details.toLowerCase().includes(q);
-        const matchPrev = item.previousStatus.toLowerCase().includes(q);
-        const matchNew = item.newStatus.toLowerCase().includes(q);
-        if (!matchTask && !matchOperator && !matchDetails && !matchPrev && !matchNew) {
+        const matchPrev = (item.previousStatus || '').toLowerCase().includes(q);
+        const matchNew = (item.newStatus || '').toLowerCase().includes(q);
+        const matchAction = (item.action || '').toLowerCase().includes(q);
+        if (!matchTask && !matchOperator && !matchDetails && !matchPrev && !matchNew && !matchAction) {
           return false;
         }
       }
@@ -61,6 +69,12 @@ export const TaskHistoryView: React.FC<TaskHistoryViewProps> = ({
       // Task ID filter
       if (selectedTaskId !== 'all' && item.taskId !== selectedTaskId) {
         return false;
+      }
+
+      // Action filter
+      if (selectedAction !== 'all') {
+        const act = item.action || 'เปลี่ยนสถานะ';
+        if (act !== selectedAction) return false;
       }
 
       // Status filter
@@ -72,7 +86,7 @@ export const TaskHistoryView: React.FC<TaskHistoryViewProps> = ({
 
       return true;
     });
-  }, [history, searchQuery, selectedTaskId, selectedStatus]);
+  }, [history, searchQuery, selectedTaskId, selectedStatus, selectedAction]);
 
   // Unique tasks present in history for dropdown
   const uniqueTaskIds = useMemo(() => {
@@ -85,9 +99,11 @@ export const TaskHistoryView: React.FC<TaskHistoryViewProps> = ({
     setSearchQuery('');
     setSelectedTaskId('all');
     setSelectedStatus('all');
+    setSelectedAction('all');
   };
 
-  const hasActiveFilters = searchQuery !== '' || selectedTaskId !== 'all' || selectedStatus !== 'all';
+  const hasActiveFilters =
+    searchQuery !== '' || selectedTaskId !== 'all' || selectedStatus !== 'all' || selectedAction !== 'all';
 
   const handleExportCSV = () => {
     exportHistoryToCSV(filteredHistory);
@@ -95,7 +111,57 @@ export const TaskHistoryView: React.FC<TaskHistoryViewProps> = ({
 
   // Metrics
   const uniqueTasksCount = new Set(history.map((h) => h.taskId)).size;
+  const statusTransitions = history.filter((h) => (h.action || 'เปลี่ยนสถานะ') === 'เปลี่ยนสถานะ').length;
+  const editsCount = history.filter((h) => h.action === 'แก้ไขงาน' || h.action === 'เพิ่มงาน').length;
   const completedTransitions = history.filter((h) => h.newStatus === 'เสร็จสิ้น').length;
+
+  const renderActionBadge = (action?: AuditActionType | string) => {
+    const act = action || 'เปลี่ยนสถานะ';
+    switch (act) {
+      case 'เพิ่มงาน':
+        return (
+          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+            <PlusCircle className="w-3 h-3 text-emerald-600" />
+            เพิ่มงานใหม่
+          </span>
+        );
+      case 'แก้ไขงาน':
+        return (
+          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-800 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md">
+            <Edit className="w-3 h-3 text-blue-600" />
+            แก้ไขงาน
+          </span>
+        );
+      case 'ลบงาน':
+        return (
+          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-800 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">
+            <Trash2 className="w-3 h-3 text-rose-600" />
+            ลบงาน
+          </span>
+        );
+      case 'เปลี่ยนกำหนดติดตาม':
+        return (
+          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
+            <Calendar className="w-3 h-3 text-amber-600" />
+            เปลี่ยนกำหนดติดตาม
+          </span>
+        );
+      case 'เปลี่ยนผู้รับผิดชอบ':
+        return (
+          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-purple-800 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-md">
+            <User className="w-3 h-3 text-purple-600" />
+            เปลี่ยนผู้รับผิดชอบ
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-800 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md">
+            <ArrowRight className="w-3 h-3 text-indigo-600" />
+            เปลี่ยนสถานะ
+          </span>
+        );
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -255,6 +321,24 @@ export const TaskHistoryView: React.FC<TaskHistoryViewProps> = ({
             </select>
           </div>
 
+          {/* Action filter */}
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-slate-500 whitespace-nowrap">การดำเนินการ:</label>
+            <select
+              value={selectedAction}
+              onChange={(e) => setSelectedAction(e.target.value)}
+              className="text-xs bg-white border border-slate-300 rounded-lg px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-900"
+            >
+              <option value="all">ทุกการดำเนินการ</option>
+              <option value="เพิ่มงาน">เพิ่มงาน</option>
+              <option value="แก้ไขงาน">แก้ไขงาน</option>
+              <option value="เปลี่ยนสถานะ">เปลี่ยนสถานะ</option>
+              <option value="เปลี่ยนกำหนดติดตาม">เปลี่ยนกำหนดติดตาม</option>
+              <option value="เปลี่ยนผู้รับผิดชอบ">เปลี่ยนผู้รับผิดชอบ</option>
+              <option value="ลบงาน">ลบงาน</option>
+            </select>
+          </div>
+
           {/* View toggle */}
           <div className="flex items-center border border-slate-300 rounded-lg p-0.5 bg-slate-50">
             <button
@@ -345,12 +429,13 @@ export const TaskHistoryView: React.FC<TaskHistoryViewProps> = ({
 
                   {/* Card Content */}
                   <div className="bg-slate-50/80 hover:bg-slate-50 border border-slate-200/90 rounded-xl p-4 transition-all">
-                    {/* Top Row: Date, Task ID & Badge */}
+                    {/* Top Row: Date, Task ID, Action Badge & Actions */}
                     <div className="flex flex-wrap items-center justify-between gap-2 mb-2.5">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-mono text-xs font-bold text-blue-950 bg-blue-100/80 px-2.5 py-0.5 rounded border border-blue-200">
                           {item.taskId}
                         </span>
+                        {renderActionBadge(item.action)}
                         {matchedTask && (
                           <span className="text-xs text-slate-600 font-medium hidden sm:inline truncate max-w-xs">
                             — {matchedTask.summary}
@@ -377,24 +462,34 @@ export const TaskHistoryView: React.FC<TaskHistoryViewProps> = ({
                       </div>
                     </div>
 
-                    {/* Status Transition flow */}
-                    <div className="flex items-center gap-2 flex-wrap my-2.5">
-                      <span className="text-xs text-slate-500">สถานะเดิม:</span>
+                    {/* Old Value vs New Value Transition flow */}
+                    <div className="flex items-center gap-2 flex-wrap my-2.5 text-xs bg-white/70 p-2.5 rounded-lg border border-slate-200/60">
+                      <span className="text-slate-500 font-medium">
+                        {item.action === 'เปลี่ยนผู้รับผิดชอบ'
+                          ? 'ผู้รับผิดชอบเดิม:'
+                          : item.action === 'เปลี่ยนกำหนดติดตาม'
+                          ? 'กำหนดเดิม:'
+                          : 'ข้อมูล/สถานะเดิม:'}
+                      </span>
                       <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${prevStyle.bg} ${prevStyle.text} border ${prevStyle.border}`}
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-medium ${prevStyle.bg} ${prevStyle.text} border ${prevStyle.border}`}
                       >
-                        <span className={`w-1.5 h-1.5 rounded-full ${prevStyle.dot}`} />
-                        {item.previousStatus}
+                        {item.previousValue || item.previousStatus || '-'}
                       </span>
 
                       <ArrowRight className="w-4 h-4 text-slate-400 shrink-0" />
 
-                      <span className="text-xs text-slate-500">สถานะใหม่:</span>
+                      <span className="text-slate-500 font-medium">
+                        {item.action === 'เปลี่ยนผู้รับผิดชอบ'
+                          ? 'ผู้รับผิดชอบใหม่:'
+                          : item.action === 'เปลี่ยนกำหนดติดตาม'
+                          ? 'กำหนดใหม่:'
+                          : 'ข้อมูล/สถานะใหม่:'}
+                      </span>
                       <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${newStyle.bg} ${newStyle.text} border ${newStyle.border}`}
+                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-semibold ${newStyle.bg} ${newStyle.text} border ${newStyle.border}`}
                       >
-                        <span className={`w-1.5 h-1.5 rounded-full ${newStyle.dot}`} />
-                        {item.newStatus}
+                        {item.newValue || item.newStatus || '-'}
                       </span>
                     </div>
 
@@ -427,11 +522,12 @@ export const TaskHistoryView: React.FC<TaskHistoryViewProps> = ({
                 <tr>
                   <th className="py-3 px-4 font-semibold">วันที่และเวลา (A)</th>
                   <th className="py-3 px-4 font-semibold">รหัสงาน (B)</th>
-                  <th className="py-3 px-4 font-semibold">สถานะเดิม (C)</th>
-                  <th className="py-3 px-4 font-semibold">สถานะใหม่ (D)</th>
+                  <th className="py-3 px-4 font-semibold">การดำเนินการ</th>
+                  <th className="py-3 px-4 font-semibold">ข้อมูลเดิม (C)</th>
+                  <th className="py-3 px-4 font-semibold">ข้อมูลใหม่ (D)</th>
                   <th className="py-3 px-4 font-semibold">ผู้ดำเนินการ (E)</th>
                   <th className="py-3 px-4 font-semibold">รายละเอียด/หมายเหตุ (F)</th>
-                  <th className="py-3 px-4 font-semibold text-right">การดำเนินการ</th>
+                  <th className="py-3 px-4 font-semibold text-right">การจัดการ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
@@ -449,17 +545,20 @@ export const TaskHistoryView: React.FC<TaskHistoryViewProps> = ({
                         {item.taskId}
                       </td>
                       <td className="py-3 px-4 whitespace-nowrap">
+                        {renderActionBadge(item.action)}
+                      </td>
+                      <td className="py-3 px-4 whitespace-nowrap">
                         <span
                           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${prevStyle.bg} ${prevStyle.text} border ${prevStyle.border}`}
                         >
-                          {item.previousStatus}
+                          {item.previousValue || item.previousStatus || '-'}
                         </span>
                       </td>
                       <td className="py-3 px-4 whitespace-nowrap">
                         <span
                           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${newStyle.bg} ${newStyle.text} border ${newStyle.border}`}
                         >
-                          {item.newStatus}
+                          {item.newValue || item.newStatus || '-'}
                         </span>
                       </td>
                       <td className="py-3 px-4 whitespace-nowrap font-medium text-slate-700">
