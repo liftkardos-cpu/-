@@ -34,7 +34,7 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ tasks }) => {
   const onTime = total - overdue - dueSoon;
 
   const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
-  const onTimeRate = total > 0 ? Math.round(((total - overdue) / total) * 100) : 100;
+  const onTimeRate = total > 0 ? Math.round(((total - overdue) / total) * 100) : 0;
 
   // Category counts
   const categoryMap: Record<string, number> = {};
@@ -136,8 +136,19 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ tasks }) => {
         </div>
       </div>
 
-      {/* Main Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Main Charts Grid or Empty State */}
+      {total === 0 ? (
+        <div className="bg-white rounded-2xl p-16 border border-slate-200 text-center shadow-xs">
+          <BarChart3 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+          <h2 className="text-base font-bold text-slate-800">
+            ยังไม่มีข้อมูลเพียงพอสำหรับการวิเคราะห์
+          </h2>
+          <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+            กรุณาบันทึกรายการงานเข้าสู่ระบบเพื่อแสดงผลสถิติ กราฟวิเคราะห์สถานะ และปริมาณงานรายเจ้าหน้าที่
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Chart 1: Status Distribution Bar Chart */}
         <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-2xs space-y-4">
           <div className="flex items-center justify-between">
@@ -241,27 +252,35 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ tasks }) => {
             <span className="text-xs text-slate-400">จำแนกตามภารกิจ</span>
           </div>
 
-          <div className="space-y-3 pt-2">
-            {categories.map(([category, count]) => {
-              const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-              return (
-                <div key={category}>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="font-medium text-slate-700">{category}</span>
-                    <span className="font-mono text-slate-800 font-semibold">
-                      {count} งาน ({pct}%)
-                    </span>
+          {categories.length === 0 ? (
+            <div className="py-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+              <Briefcase className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+              <p className="text-xs font-semibold text-slate-700">ยังไม่มีข้อมูลการดำเนินงาน</p>
+              <p className="text-[11px] text-slate-400 mt-1">กรุณาเพิ่มงานเพื่อเริ่มต้นใช้งานระบบ</p>
+            </div>
+          ) : (
+            <div className="space-y-3 pt-2">
+              {categories.map(([category, count]) => {
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                return (
+                  <div key={category}>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="font-medium text-slate-700">{category}</span>
+                      <span className="font-mono text-slate-800 font-semibold">
+                        {count} งาน ({pct}%)
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-slate-700 h-full rounded-full transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                    <div
-                      className="bg-slate-700 h-full rounded-full transition-all"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Chart 3: Officer Workload Distribution */}
@@ -274,27 +293,35 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ tasks }) => {
             <span className="text-xs text-slate-400">ชื่อสมมติในระบบ</span>
           </div>
 
-          <div className="space-y-3 pt-2">
-            {assignees.map(([name, count]) => {
-              const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-              return (
-                <div key={name}>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="font-medium text-slate-700 truncate max-w-[240px]">
-                      {name}
-                    </span>
-                    <span className="font-mono text-slate-800 font-semibold">{count} งาน</span>
+          {assignees.length === 0 ? (
+            <div className="py-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+              <Users className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+              <p className="text-xs font-semibold text-slate-700">ยังไม่มีข้อมูลการดำเนินงาน</p>
+              <p className="text-[11px] text-slate-400 mt-1">กรุณาเพิ่มงานเพื่อเริ่มต้นใช้งานระบบ</p>
+            </div>
+          ) : (
+            <div className="space-y-3 pt-2">
+              {assignees.map(([name, count]) => {
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                return (
+                  <div key={name}>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="font-medium text-slate-700 truncate max-w-[240px]">
+                        {name}
+                      </span>
+                      <span className="font-mono text-slate-800 font-semibold">{count} งาน</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                      <div
+                        className="bg-blue-800 h-full rounded-full transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                    <div
-                      className="bg-blue-800 h-full rounded-full transition-all"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Chart 4: Deadline Performance Breakdown */}
@@ -339,6 +366,7 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({ tasks }) => {
           </p>
         </div>
       </div>
+      )}
     </div>
   );
 };

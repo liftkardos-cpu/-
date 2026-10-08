@@ -473,8 +473,12 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                 <tbody className="divide-y divide-slate-200">
                   {filteredTasks.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="py-8 text-center text-slate-400">
-                        ไม่พบข้อมูลงานในช่วงเวลาที่เลือก
+                      <td colSpan={8} className="py-12 text-center text-slate-400">
+                        <FileText className="w-10 h-10 mx-auto text-slate-300 mb-2" />
+                        <p className="text-sm font-bold text-slate-700">รายงาน = ไม่มีข้อมูล</p>
+                        <p className="text-xs text-slate-400 mt-1">
+                          ยังไม่มีข้อมูลการดำเนินงาน กรุณาเพิ่มงานเพื่อเริ่มต้นใช้งานระบบ
+                        </p>
                       </td>
                     </tr>
                   ) : (

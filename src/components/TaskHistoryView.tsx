@@ -386,7 +386,16 @@ export const TaskHistoryView: React.FC<TaskHistoryViewProps> = ({
       </div>
 
       {/* Main Content: Timeline or Table */}
-      {filteredHistory.length === 0 ? (
+      {history.length === 0 ? (
+        <div className="bg-white border border-slate-200 rounded-xl p-16 text-center shadow-xs">
+          <History className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+          <h3 className="text-base font-bold text-slate-800">ประวัติการดำเนินงาน = ไม่มีข้อมูล</h3>
+          <p className="text-xs font-semibold text-slate-500 mt-1">Audit Log = ไม่มีข้อมูล</p>
+          <p className="text-xs text-slate-400 mt-2 max-w-md mx-auto">
+            ยังไม่มีข้อมูลประวัติการดำเนินงาน กรุณาเพิ่มงานเพื่อเริ่มต้นใช้งานระบบ
+          </p>
+        </div>
+      ) : filteredHistory.length === 0 ? (
         <div className="bg-white border border-slate-200 rounded-xl p-12 text-center shadow-xs">
           <History className="w-12 h-12 text-slate-300 mx-auto mb-3" />
           <h3 className="text-base font-bold text-slate-700">ไม่พบประวัติการดำเนินงานที่ตรงกับเงื่อนไข</h3>

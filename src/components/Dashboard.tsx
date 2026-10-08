@@ -57,10 +57,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const totalTasks = tasks.length;
 
   // Status Counts
-  const receivedCount = tasks.filter((t) => t.status === 'รับเรื่อง' || t.status === 'รอดำเนินการ').length;
-  const assignedCount = tasks.filter((t) => t.status === 'มอบหมาย').length;
+  const pendingCount = tasks.filter((t) => t.status === 'รอดำเนินการ' || t.status === 'รับเรื่อง').length;
   const inProgressCount = tasks.filter((t) => t.status === 'อยู่ระหว่างดำเนินการ').length;
   const followUpCount = tasks.filter((t) => t.status === 'รอติดตาม').length;
+  const onHoldCount = tasks.filter((t) => t.status === 'พัก/รอข้อมูล').length;
   const completedCount = tasks.filter((t) => t.status === 'เสร็จสิ้น').length;
 
   // Deadline Calculations (from getDetailedDeadlineInfo)
@@ -73,6 +73,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const dueTodayCount = tasksWithDeadlines.filter((item) => item.info.category === 'due_today').length;
   const due3DaysCount = tasksWithDeadlines.filter((item) => item.info.category === 'due_3_days').length;
   const due7DaysCount = tasksWithDeadlines.filter((item) => item.info.category === 'due_7_days').length;
+  const dueNearCount = due3DaysCount + due7DaysCount; // งานใกล้ครบกำหนด (ภายใน 3-7 วัน)
   const normalCount = tasksWithDeadlines.filter(
     (item) => item.info.category === 'normal' || item.info.category === 'completed'
   ).length;
@@ -213,7 +214,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-          {/* Card 1: เกินกำหนด 🔴 */}
+          {/* Card 1: งานเกินกำหนด 🔴 */}
           <button
             onClick={() => handleFilterClick({ urgency: 'overdue' })}
             className="p-3.5 rounded-xl border border-rose-200 bg-rose-50/70 hover:bg-rose-100/80 transition-all text-left cursor-pointer group shadow-2xs"
@@ -221,7 +222,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="flex items-center justify-between">
               <span className="font-semibold text-rose-800 flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-pulse" />
-                🔴 เกินกำหนด
+                🔴 งานเกินกำหนด
               </span>
               <span className="text-xs text-rose-500 group-hover:translate-x-0.5 transition-transform">
                 →
@@ -233,7 +234,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <p className="text-[11px] text-rose-600 mt-1">เลยกำหนดติดตาม ต้องเร่งรัดด่วน</p>
           </button>
 
-          {/* Card 2: ครบกำหนดภายใน 3 วัน 🟠 */}
+          {/* Card 2: งานครบกำหนดวันนี้ 🔴 */}
+          <button
+            onClick={() => handleFilterClick({ urgency: 'due_today' })}
+            className="p-3.5 rounded-xl border border-rose-200 bg-rose-50/70 hover:bg-rose-100/80 transition-all text-left cursor-pointer group shadow-2xs"
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-rose-800 flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-600" />
+                🔴 งานครบกำหนดวันนี้
+              </span>
+              <span className="text-xs text-rose-500 group-hover:translate-x-0.5 transition-transform">
+                →
+              </span>
+            </div>
+            <div className="text-2xl sm:text-3xl font-bold font-mono text-rose-900 mt-2">
+              {dueTodayCount} <span className="text-xs font-normal text-rose-700">งาน</span>
+            </div>
+            <p className="text-[11px] text-rose-600 mt-1">ครบกำหนดติดตามในวันนี้</p>
+          </button>
+
+          {/* Card 3: งานใกล้ครบกำหนด 🟠 */}
           <button
             onClick={() => handleFilterClick({ urgency: 'due_3_days' })}
             className="p-3.5 rounded-xl border border-amber-200 bg-amber-50/70 hover:bg-amber-100/80 transition-all text-left cursor-pointer group shadow-2xs"
@@ -241,41 +262,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="flex items-center justify-between">
               <span className="font-semibold text-amber-800 flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                🟠 ภายใน 3 วัน
+                🟠 งานใกล้ครบกำหนด
               </span>
               <span className="text-xs text-amber-500 group-hover:translate-x-0.5 transition-transform">
                 →
               </span>
             </div>
             <div className="text-2xl sm:text-3xl font-bold font-mono text-amber-900 mt-2">
-              {due3DaysCount + dueTodayCount} <span className="text-xs font-normal text-amber-700">งาน</span>
+              {dueNearCount} <span className="text-xs font-normal text-amber-700">งาน</span>
             </div>
             <p className="text-[11px] text-amber-600 mt-1">
-              ใกล้ถึงกำหนด (รวมวันนี้ {dueTodayCount} งาน)
+              ภายใน 3-7 วัน (3 วัน: {due3DaysCount}, 7 วัน: {due7DaysCount})
             </p>
           </button>
 
-          {/* Card 3: ครบกำหนดภายใน 7 วัน 🟡 */}
-          <button
-            onClick={() => handleFilterClick({ urgency: 'due_7_days' })}
-            className="p-3.5 rounded-xl border border-yellow-200 bg-yellow-50/70 hover:bg-yellow-100/80 transition-all text-left cursor-pointer group shadow-2xs"
-          >
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-yellow-800 flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
-                🟡 ภายใน 7 วัน
-              </span>
-              <span className="text-xs text-yellow-500 group-hover:translate-x-0.5 transition-transform">
-                →
-              </span>
-            </div>
-            <div className="text-2xl sm:text-3xl font-bold font-mono text-yellow-900 mt-2">
-              {due7DaysCount} <span className="text-xs font-normal text-yellow-700">งาน</span>
-            </div>
-            <p className="text-[11px] text-yellow-600 mt-1">อยู่ในรอบสัปดาห์ปัจจุบัน</p>
-          </button>
-
-          {/* Card 4: อยู่ในกำหนด 🟢 */}
+          {/* Card 4: งานปกติ / อยู่ในกำหนด 🟢 */}
           <button
             onClick={() => handleFilterClick({ urgency: 'normal' })}
             className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-100/80 transition-all text-left cursor-pointer group shadow-2xs"
@@ -283,7 +284,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="flex items-center justify-between">
               <span className="font-semibold text-emerald-800 flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                🟢 อยู่ในกำหนด
+                🟢 งานปกติ
               </span>
               <span className="text-xs text-emerald-500 group-hover:translate-x-0.5 transition-transform">
                 →
@@ -292,7 +293,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="text-2xl sm:text-3xl font-bold font-mono text-emerald-900 mt-2">
               {normalCount} <span className="text-xs font-normal text-emerald-700">งาน</span>
             </div>
-            <p className="text-[11px] text-emerald-600 mt-1">การดำเนินงานตามแผนปกติ</p>
+            <p className="text-[11px] text-emerald-600 mt-1">อยู่ในกำหนดตามแผนปกติ</p>
           </button>
         </div>
       </div>
@@ -307,7 +308,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs hover:shadow-xs transition-shadow text-left cursor-pointer group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">ส่วนที่ 1: งานทั้งหมด</span>
+            <span className="text-xs font-semibold text-slate-500">งานทั้งหมด</span>
             <div className="p-1.5 bg-slate-100 text-slate-700 rounded-lg group-hover:bg-blue-100 group-hover:text-blue-900 transition-colors">
               <FileText className="w-4 h-4" />
             </div>
@@ -320,51 +321,32 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </button>
 
-        {/* ส่วนที่ 2A: รับเรื่อง */}
+        {/* ส่วนที่ 2A: รอดำเนินการ */}
         <button
-          onClick={() => handleFilterClick({ status: 'รับเรื่อง' })}
+          onClick={() => handleFilterClick({ status: 'รอดำเนินการ' })}
           className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs hover:shadow-xs transition-shadow text-left cursor-pointer group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">รับเรื่อง</span>
+            <span className="text-xs font-semibold text-slate-500">รอดำเนินการ</span>
             <div className="p-1.5 bg-slate-100 text-slate-600 rounded-lg group-hover:bg-slate-200 transition-colors">
               <Inbox className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-2.5">
             <div className="text-2xl sm:text-3xl font-bold text-slate-700 font-mono">
-              {receivedCount}
+              {pendingCount}
             </div>
             <p className="text-[11px] text-slate-400 mt-0.5">ลงทะเบียนเข้าใหม่</p>
           </div>
         </button>
 
-        {/* ส่วนที่ 2B: มอบหมาย */}
-        <button
-          onClick={() => handleFilterClick({ status: 'มอบหมาย' })}
-          className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs hover:shadow-xs transition-shadow text-left cursor-pointer group"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">มอบหมาย</span>
-            <div className="p-1.5 bg-indigo-50 text-indigo-700 rounded-lg group-hover:bg-indigo-100 transition-colors">
-              <User className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2.5">
-            <div className="text-2xl sm:text-3xl font-bold text-indigo-800 font-mono">
-              {assignedCount}
-            </div>
-            <p className="text-[11px] text-indigo-600 mt-0.5">ส่งต่อผู้รับผิดชอบ</p>
-          </div>
-        </button>
-
-        {/* ส่วนที่ 2C: อยู่ระหว่างดำเนินการ */}
+        {/* ส่วนที่ 2B: อยู่ระหว่างดำเนินการ */}
         <button
           onClick={() => handleFilterClick({ status: 'อยู่ระหว่างดำเนินการ' })}
           className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs hover:shadow-xs transition-shadow text-left cursor-pointer group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">ดำเนินการ</span>
+            <span className="text-xs font-semibold text-slate-500">อยู่ระหว่างดำเนินการ</span>
             <div className="p-1.5 bg-blue-50 text-blue-700 rounded-lg group-hover:bg-blue-100 transition-colors">
               <Clock className="w-4 h-4" />
             </div>
@@ -377,7 +359,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </button>
 
-        {/* ส่วนที่ 2D: รอติดตาม */}
+        {/* ส่วนที่ 2C: รอติดตาม */}
         <button
           onClick={() => handleFilterClick({ status: 'รอติดตาม' })}
           className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs hover:shadow-xs transition-shadow text-left cursor-pointer group"
@@ -396,7 +378,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </button>
 
-        {/* ส่วนที่ 5: อัตราความสำเร็จ & เสร็จสิ้น */}
+        {/* ส่วนที่ 2D: พัก/รอข้อมูล */}
+        <button
+          onClick={() => handleFilterClick({ status: 'พัก/รอข้อมูล' })}
+          className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs hover:shadow-xs transition-shadow text-left cursor-pointer group"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">พัก/รอข้อมูล</span>
+            <div className="p-1.5 bg-purple-50 text-purple-700 rounded-lg group-hover:bg-purple-100 transition-colors">
+              <PauseCircle className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="mt-2.5">
+            <div className="text-2xl sm:text-3xl font-bold text-purple-800 font-mono">
+              {onHoldCount}
+            </div>
+            <p className="text-[11px] text-purple-600 mt-0.5">รอข้อมูลเพิ่มเติม</p>
+          </div>
+        </button>
+
+        {/* ส่วนที่ 5: เสร็จสิ้น & อัตราความสำเร็จ */}
         <button
           onClick={() => handleFilterClick({ status: 'เสร็จสิ้น' })}
           className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs hover:shadow-xs transition-shadow text-left cursor-pointer group"
@@ -412,7 +413,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               {completedCount}
             </div>
             <p className="text-[11px] text-emerald-600 mt-0.5 font-semibold">
-              อัตราสำเร็จ {completionRate}%
+              อัตราความสำเร็จ {completionRate}%
             </p>
           </div>
         </button>
@@ -438,83 +439,102 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </span>
           </div>
 
-          {/* Stacked Progress Bar */}
-          <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden flex gap-0.5 p-0.5">
-            {receivedCount > 0 && (
-              <div
-                style={{ width: `${(receivedCount / totalTasks) * 100}%` }}
-                className="bg-slate-400 rounded-xs transition-all"
-                title={`รับเรื่อง: ${receivedCount}`}
-              />
-            )}
-            {assignedCount > 0 && (
-              <div
-                style={{ width: `${(assignedCount / totalTasks) * 100}%` }}
-                className="bg-indigo-600 rounded-xs transition-all"
-                title={`มอบหมาย: ${assignedCount}`}
-              />
-            )}
-            {inProgressCount > 0 && (
-              <div
-                style={{ width: `${(inProgressCount / totalTasks) * 100}%` }}
-                className="bg-blue-600 rounded-xs transition-all"
-                title={`อยู่ระหว่างดำเนินการ: ${inProgressCount}`}
-              />
-            )}
-            {followUpCount > 0 && (
-              <div
-                style={{ width: `${(followUpCount / totalTasks) * 100}%` }}
-                className="bg-amber-500 rounded-xs transition-all"
-                title={`รอติดตาม: ${followUpCount}`}
-              />
-            )}
-            {completedCount > 0 && (
-              <div
-                style={{ width: `${(completedCount / totalTasks) * 100}%` }}
-                className="bg-emerald-600 rounded-xs transition-all"
-                title={`เสร็จสิ้น: ${completedCount}`}
-              />
-            )}
-          </div>
+          {totalTasks === 0 ? (
+            <div className="py-10 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+              <Layers className="w-9 h-9 mx-auto text-slate-300 mb-2" />
+              <p className="text-sm font-bold text-slate-700">ยังไม่มีข้อมูลการดำเนินงาน</p>
+              <p className="text-xs text-slate-400 mt-1">กรุณาเพิ่มงานเพื่อเริ่มต้นใช้งานระบบ</p>
+              {canAdd && (
+                <button
+                  onClick={onOpenCreate}
+                  className="mt-3.5 inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-900 text-white text-xs font-semibold rounded-lg hover:bg-blue-800 transition-colors cursor-pointer shadow-2xs"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>+ เพิ่มงานแรกเข้าสู่ระบบ</span>
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              {/* Stacked Progress Bar */}
+              <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden flex gap-0.5 p-0.5">
+                {pendingCount > 0 && (
+                  <div
+                    style={{ width: `${(pendingCount / totalTasks) * 100}%` }}
+                    className="bg-slate-400 rounded-xs transition-all"
+                    title={`รอดำเนินการ: ${pendingCount}`}
+                  />
+                )}
+                {inProgressCount > 0 && (
+                  <div
+                    style={{ width: `${(inProgressCount / totalTasks) * 100}%` }}
+                    className="bg-blue-600 rounded-xs transition-all"
+                    title={`อยู่ระหว่างดำเนินการ: ${inProgressCount}`}
+                  />
+                )}
+                {followUpCount > 0 && (
+                  <div
+                    style={{ width: `${(followUpCount / totalTasks) * 100}%` }}
+                    className="bg-amber-500 rounded-xs transition-all"
+                    title={`รอติดตาม: ${followUpCount}`}
+                  />
+                )}
+                {onHoldCount > 0 && (
+                  <div
+                    style={{ width: `${(onHoldCount / totalTasks) * 100}%` }}
+                    className="bg-purple-500 rounded-xs transition-all"
+                    title={`พัก/รอข้อมูล: ${onHoldCount}`}
+                  />
+                )}
+                {completedCount > 0 && (
+                  <div
+                    style={{ width: `${(completedCount / totalTasks) * 100}%` }}
+                    className="bg-emerald-600 rounded-xs transition-all"
+                    title={`เสร็จสิ้น: ${completedCount}`}
+                  />
+                )}
+              </div>
 
-          {/* Legend */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-3 border-t border-slate-100 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
-              <div>
-                <span className="text-slate-500 block text-[11px]">รับเรื่อง</span>
-                <span className="font-bold text-slate-800 font-mono">{receivedCount}</span>
+              {/* Legend */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-3 border-t border-slate-100 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
+                  <div>
+                    <span className="text-slate-500 block text-[11px]">รอดำเนินการ</span>
+                    <span className="font-bold text-slate-800 font-mono">{pendingCount}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+                  <div>
+                    <span className="text-slate-500 block text-[11px]">ดำเนินการ</span>
+                    <span className="font-bold text-blue-900 font-mono">{inProgressCount}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                  <div>
+                    <span className="text-slate-500 block text-[11px]">รอติดตาม</span>
+                    <span className="font-bold text-amber-800 font-mono">{followUpCount}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
+                  <div>
+                    <span className="text-slate-500 block text-[11px]">พัก/รอข้อมูล</span>
+                    <span className="font-bold text-purple-800 font-mono">{onHoldCount}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
+                  <div>
+                    <span className="text-slate-500 block text-[11px]">เสร็จสิ้น</span>
+                    <span className="font-bold text-emerald-700 font-mono">{completedCount}</span>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-indigo-600" />
-              <div>
-                <span className="text-slate-500 block text-[11px]">มอบหมาย</span>
-                <span className="font-bold text-indigo-800 font-mono">{assignedCount}</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
-              <div>
-                <span className="text-slate-500 block text-[11px]">ดำเนินการ</span>
-                <span className="font-bold text-blue-900 font-mono">{inProgressCount}</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-              <div>
-                <span className="text-slate-500 block text-[11px]">รอติดตาม</span>
-                <span className="font-bold text-amber-800 font-mono">{followUpCount}</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
-              <div>
-                <span className="text-slate-500 block text-[11px]">เสร็จสิ้น</span>
-                <span className="font-bold text-emerald-700 font-mono">{completedCount}</span>
-              </div>
-            </div>
-          </div>
+            </>
+          )}
         </div>
 
         {/* Category Breakdown Widget */}
@@ -524,25 +544,33 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <BarChart3 className="w-4 h-4 text-blue-900" />
           </div>
 
-          <div className="space-y-2.5 pt-1">
-            {Object.entries(categoryCounts).map(([catName, count]) => {
-              const pct = totalTasks > 0 ? Math.round((count / totalTasks) * 100) : 0;
-              return (
-                <div key={catName} className="space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-slate-700 truncate max-w-[160px]">{catName}</span>
-                    <span className="font-mono text-slate-500 font-semibold">{count} งาน</span>
+          {totalTasks === 0 ? (
+            <div className="py-10 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+              <BarChart3 className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+              <p className="text-xs font-semibold text-slate-700">ยังไม่มีข้อมูลการดำเนินงาน</p>
+              <p className="text-[11px] text-slate-400 mt-1">กรุณาเพิ่มงานเพื่อเริ่มต้นใช้งานระบบ</p>
+            </div>
+          ) : (
+            <div className="space-y-2.5 pt-1">
+              {Object.entries(categoryCounts).map(([catName, count]) => {
+                const pct = totalTasks > 0 ? Math.round((count / totalTasks) * 100) : 0;
+                return (
+                  <div key={catName} className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-700 truncate max-w-[160px]">{catName}</span>
+                      <span className="font-mono text-slate-500 font-semibold">{count} งาน</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        style={{ width: `${pct}%` }}
+                        className="h-full bg-blue-900 rounded-full transition-all"
+                      />
+                    </div>
                   </div>
-                  <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      style={{ width: `${pct}%` }}
-                      className="h-full bg-blue-900 rounded-full transition-all"
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
@@ -586,8 +614,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <tbody className="divide-y divide-slate-100">
               {recentTasks.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-slate-400">
-                    ไม่มีรายการงานในระบบ
+                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                    <Inbox className="w-10 h-10 mx-auto text-slate-300 mb-2" />
+                    <p className="text-sm font-bold text-slate-700">ยังไม่มีข้อมูลการดำเนินงาน</p>
+                    <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                      กรุณาเพิ่มงานเพื่อเริ่มต้นใช้งานระบบ
+                    </p>
+                    {canAdd && (
+                      <button
+                        onClick={onOpenCreate}
+                        className="mt-3.5 inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors cursor-pointer"
+                      >
+                        <PlusCircle className="w-4 h-4" />
+                        <span>+ เพิ่มงานใหม่</span>
+                      </button>
+                    )}
                   </td>
                 </tr>
               ) : (

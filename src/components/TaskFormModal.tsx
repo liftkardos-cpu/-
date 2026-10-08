@@ -83,16 +83,18 @@ export const TaskFormModal: React.FC<TaskFormModalProps> = ({
         setPriority(initialTask.priority || 'ปกติ');
         setWorkflowStep(initialTask.workflowStep || 1);
       } else {
-        // Find next SEC-XXX
+        // Find next SOTS-XXX (or SEC-XXX if existing)
         let maxNum = 0;
+        let prefix = 'SOTS';
         existingIds.forEach((currId) => {
-          const match = currId.match(/SEC-(\d+)/);
+          const match = currId.match(/(SOTS|SEC)-(\d+)/i);
           if (match) {
-            const num = parseInt(match[1], 10);
+            prefix = match[1].toUpperCase();
+            const num = parseInt(match[2], 10);
             if (num > maxNum) maxNum = num;
           }
         });
-        const nextId = `SEC-${String(maxNum + 1).padStart(3, '0')}`;
+        const nextId = `${prefix}-${String(maxNum + 1).padStart(3, '0')}`;
         setId(nextId);
         setReceivedDate(today);
         setCategory('งานประสานงาน');

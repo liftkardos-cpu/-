@@ -624,6 +624,8 @@ export async function seedInitialTasksToSheet(
   initialTasks: Task[],
   accessToken: string
 ): Promise<void> {
+  if (!initialTasks || initialTasks.length === 0) return;
+
   const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(
     SHEET_NAME
   )}!A2:M:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
@@ -755,6 +757,8 @@ export async function seedInitialHistoryToSheet(
   historyItems: TaskHistoryItem[],
   accessToken: string
 ): Promise<void> {
+  if (!historyItems || historyItems.length === 0) return;
+
   const appendUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(
     SHEET_HISTORY_NAME
   )}!A2:F:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;

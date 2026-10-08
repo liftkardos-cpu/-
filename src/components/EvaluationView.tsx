@@ -127,10 +127,16 @@ export const EvaluationView: React.FC<EvaluationViewProps> = ({
               คะแนนเฉลี่ยรวม
             </span>
             <div className="text-3xl font-bold text-blue-400 font-mono mt-0.5">
-              {overallAvg} <span className="text-sm font-normal text-slate-400">/ 5.00</span>
+              {totalCount > 0 ? (
+                <>
+                  {overallAvg} <span className="text-sm font-normal text-slate-400">/ 5.00</span>
+                </>
+              ) : (
+                <span className="text-2xl text-slate-400">-</span>
+              )}
             </div>
             <div className="text-[10px] text-slate-300 mt-1 font-medium">
-              จากผู้ประเมิน {totalCount} ราย
+              {totalCount > 0 ? `จากผู้ประเมิน ${totalCount} ราย` : 'Evaluation = ยังไม่มีข้อมูล'}
             </div>
           </div>
         </div>
@@ -138,10 +144,9 @@ export const EvaluationView: React.FC<EvaluationViewProps> = ({
         {/* Disclaimer alert */}
         <div className="mt-4 p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
           <Info className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-          <span>
-            <strong>หมายเหตุประกอบรายงาน CWIE:</strong> ข้อมูลคะแนนในหน้านี้เป็น{' '}
-            <u>ข้อมูลการทดลอง/ข้อมูลจำลอง</u> เพื่อแสดงตัวอย่างการวิเคราะห์ผลสัมฤทธิ์ของระบบ
-            จนกว่าจะมีการจัดเก็บข้อมูลแบบสอบถามจริงจากเจ้าหน้าที่ผู้ปฏิบัติงานและอาจารย์นิเทศก์
+          <span className="leading-relaxed">
+            <strong>คำชี้แจง:</strong> ระบบต้นแบบ SOTS จะคำนวณคะแนนประเมินจากการตอบแบบสอบถามจริงของผู้ประเมินเท่านั้น
+            ไม่มีการสร้างคะแนนประเมินปลอมหรือข้อมูลจำลองตั้งต้น
           </span>
         </div>
       </div>
@@ -155,38 +160,49 @@ export const EvaluationView: React.FC<EvaluationViewProps> = ({
             ผลการประเมินจำแนกตามรายด้าน (5 ข้อ)
           </h2>
 
-          <div className="space-y-4 pt-2">
-            {CRITERIA.map((criterion) => {
-              const score = avgScores[criterion.key] || 0;
-              const interp = getScoreInterpretation(score);
-              const percentage = (score / 5) * 100;
+          {totalCount === 0 ? (
+            <div className="py-12 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+              <Star className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+              <p className="text-sm font-bold text-slate-700">ยังไม่มีผลการประเมิน</p>
+              <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+                คะแนนรวม = - (จำนวนผู้ประเมิน = 0 ราย)
+                คะแนนเฉลี่ยจะคำนวณอัตโนมัติเมื่อมีผู้ใช้งานกรอกแบบประเมิน
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4 pt-2">
+              {CRITERIA.map((criterion) => {
+                const score = avgScores[criterion.key] || 0;
+                const interp = getScoreInterpretation(score);
+                const percentage = (score / 5) * 100;
 
-              return (
-                <div key={criterion.key} className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-slate-800">{criterion.label}</span>
-                    <span className="font-mono font-bold text-blue-900 text-sm">
-                      {score.toFixed(2)} / 5.00
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-400">{criterion.desc}</p>
-                  <div className="flex items-center gap-3">
-                    <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                      <div
-                        className="bg-blue-900 h-full rounded-full transition-all"
-                        style={{ width: `${percentage}%` }}
-                      />
+                return (
+                  <div key={criterion.key} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-slate-800">{criterion.label}</span>
+                      <span className="font-mono font-bold text-blue-900 text-sm">
+                        {score.toFixed(2)} / 5.00
+                      </span>
                     </div>
-                    <span
-                      className={`text-[10px] font-semibold px-2 py-0.5 rounded border whitespace-nowrap ${interp.color}`}
-                    >
-                      {interp.text}
-                    </span>
+                    <p className="text-[11px] text-slate-400">{criterion.desc}</p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                        <div
+                          className="bg-blue-900 h-full rounded-full transition-all"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                      <span
+                        className={`text-[10px] font-semibold px-2 py-0.5 rounded border whitespace-nowrap ${interp.color}`}
+                      >
+                        {interp.text}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
 
           <div className="pt-3 border-t border-slate-100 text-[11px] text-slate-500">
             เกณฑ์คะแนน: 5 = มากที่สุด, 4 = มาก, 3 = ปานกลาง, 2 = น้อย, 1 = น้อยที่สุด
@@ -310,46 +326,56 @@ export const EvaluationView: React.FC<EvaluationViewProps> = ({
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
             <MessageSquare className="w-4 h-4 text-blue-900" />
-            รายการบันทึกผลการประเมินทดลอง ({evaluations.length} รายการ)
+            รายการบันทึกผลการประเมิน ({evaluations.length} รายการ)
           </h2>
-          {onResetEvaluations && (
+          {onResetEvaluations && evaluations.length > 0 && (
             <button
               onClick={onResetEvaluations}
-              className="text-xs text-slate-500 hover:text-slate-800 underline font-medium"
+              className="text-xs text-rose-600 hover:text-rose-800 underline font-medium cursor-pointer"
             >
-              รีเซ็ตแบบประเมินตัวอย่างเริ่มต้น
+              ล้างผลการประเมิน
             </button>
           )}
         </div>
 
         <div className="space-y-3">
-          {evaluations.map((ev) => (
-            <div
-              key={ev.id}
-              className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-2"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                <div>
-                  <span className="font-bold text-slate-900">{ev.evaluatorName}</span>
-                  <span className="text-slate-500 ml-2">({ev.role})</span>
-                </div>
-                <div className="flex items-center gap-3 text-slate-500 font-mono text-[11px]">
-                  <span>{ev.date}</span>
-                  <span className="bg-blue-100 text-blue-900 font-bold px-2 py-0.5 rounded">
-                    เฉลี่ย: {(
-                      Object.values(ev.ratings).reduce((a, b) => a + b, 0) / 5
-                    ).toFixed(2)}
-                  </span>
-                </div>
-              </div>
-
-              {ev.comments && (
-                <p className="text-slate-700 italic bg-white p-2.5 rounded-lg border border-slate-100">
-                  “{ev.comments}”
-                </p>
-              )}
+          {evaluations.length === 0 ? (
+            <div className="py-10 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+              <MessageSquare className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+              <p className="text-xs font-bold text-slate-700">Evaluation = ยังไม่มีข้อมูล</p>
+              <p className="text-[11px] text-slate-400 mt-1">
+                เมื่อมีผู้ใช้งานจริงกรอกแบบประเมินทางด้านขวา รายการบันทึกและคะแนนเฉลี่ยจะปรากฏที่นี่
+              </p>
             </div>
-          ))}
+          ) : (
+            evaluations.map((ev) => (
+              <div
+                key={ev.id}
+                className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-2"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <div>
+                    <span className="font-bold text-slate-900">{ev.evaluatorName}</span>
+                    <span className="text-slate-500 ml-2">({ev.role})</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-slate-500 font-mono text-[11px]">
+                    <span>{ev.date}</span>
+                    <span className="bg-blue-100 text-blue-900 font-bold px-2 py-0.5 rounded">
+                      เฉลี่ย: {(
+                        Object.values(ev.ratings).reduce((a, b) => a + b, 0) / 5
+                      ).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+
+                {ev.comments && (
+                  <p className="text-slate-700 italic bg-white p-2.5 rounded-lg border border-slate-100">
+                    “{ev.comments}”
+                  </p>
+                )}
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

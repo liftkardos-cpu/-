@@ -2,29 +2,29 @@ import { Task, EvaluationItem, UserRole, TaskHistoryItem, TaskDocument } from '.
 import { INITIAL_TASKS, INITIAL_EVALUATIONS, INITIAL_HISTORY, INITIAL_DOCUMENTS } from '../data/mockData';
 
 const STORAGE_KEYS = {
-  TASKS: 'sots_tasks_v1',
-  HISTORY: 'sots_history_v1',
-  DOCUMENTS: 'sots_documents_v1',
-  EVALUATIONS: 'sots_evaluations_v1',
-  USER_ROLE: 'sots_user_role_v1'
+  TASKS: 'sots_tasks_v3',
+  HISTORY: 'sots_history_v3',
+  DOCUMENTS: 'sots_documents_v3',
+  EVALUATIONS: 'sots_evaluations_v3',
+  USER_ROLE: 'sots_user_role_v3'
 };
 
 export function loadTasks(): Task[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.TASKS);
     if (raw === null) {
-      saveTasks(INITIAL_TASKS);
-      return INITIAL_TASKS;
+      saveTasks([]);
+      return [];
     }
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) {
-      saveTasks(INITIAL_TASKS);
-      return INITIAL_TASKS;
+      saveTasks([]);
+      return [];
     }
     return parsed;
   } catch (e) {
     console.error('Failed to load tasks from localStorage', e);
-    return INITIAL_TASKS;
+    return [];
   }
 }
 
@@ -36,28 +36,18 @@ export function saveTasks(tasks: Task[]): void {
   }
 }
 
-export function resetTasksToDemo(): Task[] {
-  try {
-    localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(INITIAL_TASKS));
-    return INITIAL_TASKS;
-  } catch (e) {
-    console.error('Failed to reset tasks to demo', e);
-    return INITIAL_TASKS;
-  }
-}
-
 export function loadHistory(): TaskHistoryItem[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.HISTORY);
     if (raw === null) {
-      saveHistory(INITIAL_HISTORY);
-      return INITIAL_HISTORY;
+      saveHistory([]);
+      return [];
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : INITIAL_HISTORY;
+    return Array.isArray(parsed) ? parsed : [];
   } catch (e) {
     console.error('Failed to load history from localStorage', e);
-    return INITIAL_HISTORY;
+    return [];
   }
 }
 
@@ -69,28 +59,18 @@ export function saveHistory(history: TaskHistoryItem[]): void {
   }
 }
 
-export function resetHistoryToDemo(): TaskHistoryItem[] {
-  try {
-    localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(INITIAL_HISTORY));
-    return INITIAL_HISTORY;
-  } catch (e) {
-    console.error('Failed to reset history to demo', e);
-    return INITIAL_HISTORY;
-  }
-}
-
 export function loadDocuments(): TaskDocument[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.DOCUMENTS);
     if (raw === null) {
-      saveDocuments(INITIAL_DOCUMENTS);
-      return INITIAL_DOCUMENTS;
+      saveDocuments([]);
+      return [];
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : INITIAL_DOCUMENTS;
+    return Array.isArray(parsed) ? parsed : [];
   } catch (e) {
     console.error('Failed to load documents from localStorage', e);
-    return INITIAL_DOCUMENTS;
+    return [];
   }
 }
 
@@ -102,28 +82,18 @@ export function saveDocuments(documents: TaskDocument[]): void {
   }
 }
 
-export function resetDocumentsToDemo(): TaskDocument[] {
-  try {
-    localStorage.setItem(STORAGE_KEYS.DOCUMENTS, JSON.stringify(INITIAL_DOCUMENTS));
-    return INITIAL_DOCUMENTS;
-  } catch (e) {
-    console.error('Failed to reset documents to demo', e);
-    return INITIAL_DOCUMENTS;
-  }
-}
-
 export function loadEvaluations(): EvaluationItem[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.EVALUATIONS);
     if (raw === null) {
-      saveEvaluations(INITIAL_EVALUATIONS);
-      return INITIAL_EVALUATIONS;
+      saveEvaluations([]);
+      return [];
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : INITIAL_EVALUATIONS;
+    return Array.isArray(parsed) ? parsed : [];
   } catch (e) {
     console.error('Failed to load evaluations', e);
-    return INITIAL_EVALUATIONS;
+    return [];
   }
 }
 
@@ -135,14 +105,62 @@ export function saveEvaluations(evaluations: EvaluationItem[]): void {
   }
 }
 
+/**
+ * Loads test/demonstration dataset only upon explicit user request.
+ */
+export function loadTestData(): {
+  tasks: Task[];
+  history: TaskHistoryItem[];
+  documents: TaskDocument[];
+  evaluations: EvaluationItem[];
+} {
+  saveTasks(INITIAL_TASKS);
+  saveHistory(INITIAL_HISTORY);
+  saveDocuments(INITIAL_DOCUMENTS);
+  saveEvaluations(INITIAL_EVALUATIONS);
+  return {
+    tasks: INITIAL_TASKS,
+    history: INITIAL_HISTORY,
+    documents: INITIAL_DOCUMENTS,
+    evaluations: INITIAL_EVALUATIONS
+  };
+}
+
+/**
+ * Clears all data in the system back to 0 (Empty state).
+ */
+export function clearAllData(): {
+  tasks: Task[];
+  history: TaskHistoryItem[];
+  documents: TaskDocument[];
+  evaluations: EvaluationItem[];
+} {
+  saveTasks([]);
+  saveHistory([]);
+  saveDocuments([]);
+  saveEvaluations([]);
+  return {
+    tasks: [],
+    history: [],
+    documents: [],
+    evaluations: []
+  };
+}
+
+export function resetTasksToDemo(): Task[] {
+  return loadTestData().tasks;
+}
+
+export function resetHistoryToDemo(): TaskHistoryItem[] {
+  return loadTestData().history;
+}
+
+export function resetDocumentsToDemo(): TaskDocument[] {
+  return loadTestData().documents;
+}
+
 export function resetEvaluationsToDemo(): EvaluationItem[] {
-  try {
-    localStorage.setItem(STORAGE_KEYS.EVALUATIONS, JSON.stringify(INITIAL_EVALUATIONS));
-    return INITIAL_EVALUATIONS;
-  } catch (e) {
-    console.error('Failed to reset evaluations to demo', e);
-    return INITIAL_EVALUATIONS;
-  }
+  return loadTestData().evaluations;
 }
 
 export function loadUserRole(): UserRole {

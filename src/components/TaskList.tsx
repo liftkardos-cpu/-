@@ -414,7 +414,24 @@ export const TaskList: React.FC<TaskListProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredTasks.length === 0 ? (
+              {tasks.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-16 text-center text-slate-400">
+                    <FileSpreadsheet className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                    <p className="text-base font-bold text-slate-700">ยังไม่มีรายการงาน</p>
+                    <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                      ระบบพร้อมสำหรับการบันทึกข้อมูล คลิกปุ่ม "+ เพิ่มงาน" เพื่อลงทะเบียนงานแรกเข้าสู่ระบบ
+                    </p>
+                    <button
+                      onClick={onOpenCreate}
+                      className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl transition-all shadow-xs cursor-pointer"
+                    >
+                      <PlusCircle className="w-4 h-4" />
+                      <span>+ เพิ่มงาน</span>
+                    </button>
+                  </td>
+                </tr>
+              ) : filteredTasks.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-slate-400">
                     <FileSpreadsheet className="w-8 h-8 mx-auto mb-2 text-slate-300" />
